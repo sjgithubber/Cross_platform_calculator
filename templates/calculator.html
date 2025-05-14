@@ -1,0 +1,183 @@
+<!-- Save this as templates/calculator.html for the Flask example -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        #calculator {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        #display {
+            width: 100%;
+            height: 60px;
+            font-size: 28px;
+            text-align: right;
+            margin-bottom: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        button {
+            height: 60px;
+            font-size: 18px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .number, .decimal {
+            background-color: #f0f0f0;
+        }
+        .number:hover, .decimal:hover {
+            background-color: #e0e0e0;
+        }
+        .operator {
+            background-color: #FF9500;
+            color: white;
+        }
+        .operator:hover {
+            background-color: #e08500;
+        }
+        .clear {
+            background-color: #C0C0C0;
+        }
+        .clear:hover {
+            background-color: #b0b0b0;
+        }
+        .equals {
+            grid-column: span 4;
+            background-color: #FF9500;
+            color: white;
+            margin-top: 8px;
+        }
+        .equals:hover {
+            background-color: #e08500;
+        }
+    </style>
+</head>
+<body>
+    <div id="calculator">
+        <input type="text" id="display" readonly>
+        <div class="buttons">
+            <button class="number">7</button>
+            <button class="number">8</button>
+            <button class="number">9</button>
+            <button class="operator">/</button>
+            
+            <button class="number">4</button>
+            <button class="number">5</button>
+            <button class="number">6</button>
+            <button class="operator">*</button>
+            
+            <button class="number">1</button>
+            <button class="number">2</button>
+            <button class="number">3</button>
+            <button class="operator">-</button>
+            
+            <button class="number">0</button>
+            <button class="decimal">.</button>
+            <button class="clear">C</button>
+            <button class="operator">+</button>
+            
+            <button class="equals">=</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+        let newNumber = true;
+        
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', async () => {
+                const value = button.textContent;
+                
+                if (value === 'C') {
+                    display.value = '';
+                } else if (value === '=') {
+                    if (display.value) {
+                        // Call the Flask API
+                        try {
+                            const response = await fetch('/calculate', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    expression: display.value
+                                }),
+                            });
+                            
+                            const data = await response.json();
+                            if (data.result !== undefined) {
+                                display.value = data.result;
+                            } else {
+                                display.value = 'Error';
+                            }
+                            newNumber = true;
+                        } catch (error) {
+                            display.value = 'Error';
+                            console.error('Error:', error);
+                        }
+                    }
+                } else {
+                    if (['+', '-', '*', '/'].includes(value)) {
+                        if (display.value && ['+', '-', '*', '/'].includes(display.value.slice(-1))) {
+                            display.value = display.value.slice(0, -1) + value;
+                        } else if (display.value) {
+                            display.value += value;
+                        }
+                        newNumber = false;
+                    } else if (value === '.') {
+                        if (newNumber || !display.value) {
+                            display.value = '0.';
+                            newNumber = false;
+                        } else {
+                            // Check if current number already has a decimal point
+                            let currentNumber = '';
+                            
+                            // Get the part after the last operator
+                            for (let i = display.value.length - 1; i >= 0; i--) {
+                                const char = display.value[i];
+                                if (['+', '-', '*', '/'].includes(char)) {
+                                    break;
+                                }
+                                currentNumber = char + currentNumber;
+                            }
+                            
+                            if (!currentNumber.includes('.')) {
+                                display.value += '.';
+                            }
+                        }
+                    } else {
+                        if (newNumber) {
+                            display.value = value;
+                            newNumber = false;
+                        } else {
+                            display.value += value;
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
